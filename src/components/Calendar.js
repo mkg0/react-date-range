@@ -2,7 +2,7 @@ import React, { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import { rangeShape } from './DayCell.js';
 import Month from './Month.js';
-import { calcFocusDate, generateStyles, getMonthDisplayRange } from '../utils';
+import { calcFocusDate, generateStyles, getMonthDisplayRange, getDateOptions } from '../utils';
 import classnames from 'classnames';
 import ReactList from 'react-list';
 import {
@@ -24,7 +24,6 @@ import {
   min,
   max,
 } from 'date-fns';
-import defaultLocale from 'date-fns/locale/en-US';
 import coreStyles from '../styles';
 
 class Calendar extends PureComponent {
@@ -42,7 +41,7 @@ class Calendar extends PureComponent {
     this.updatePreview = this.updatePreview.bind(this);
     this.estimateMonthSize = this.estimateMonthSize.bind(this);
     this.handleScroll = this.handleScroll.bind(this);
-    this.dateOptions = { locale: props.locale };
+    this.dateOptions = getDateOptions(props);
     this.styles = generateStyles([coreStyles, props.classNames]);
     this.listSizeCache = {};
     this.state = {
@@ -123,7 +122,7 @@ class Calendar extends PureComponent {
     };
     const targetProp = propMapper[nextProps.displayMode];
     if (this.props.locale !== nextProps.locale) {
-      this.dateOptions = { locale: nextProps.locale };
+      this.dateOptions = getDateOptions(nextProps);
     }
     if (JSON.stringify(this.props.scroll) !== JSON.stringify(nextProps.scroll)) {
       this.setState({ scrollArea: this.calcScrollArea(nextProps) });
@@ -161,7 +160,7 @@ class Calendar extends PureComponent {
     }
   }
   renderMonthAndYear(focusedDate, changeShownDate, props) {
-    const { showMonthArrow, locale, minDate, maxDate } = props;
+    const { showMonthArrow, minDate, maxDate } = props;
     const upperYearLimit = maxDate.getFullYear();
     const lowerYearLimit = minDate.getFullYear();
     const styles = this.styles;
@@ -180,7 +179,7 @@ class Calendar extends PureComponent {
             <select
               value={focusedDate.getMonth()}
               onChange={e => changeShownDate(e.target.value, 'setMonth')}>
-              {locale.localize.months().map((month, i) => (
+              {this.dateOptions.locale.localize.months().map((month, i) => (
                 <option key={i} value={i}>
                   {month}
                 </option>
@@ -448,7 +447,6 @@ class Calendar extends PureComponent {
 Calendar.defaultProps = {
   showMonthArrow: true,
   classNames: {},
-  locale: defaultLocale,
   ranges: [],
   focusedRange: [0, 0],
   dateDisplayFormat: 'MMM D, YYYY',
@@ -465,6 +463,8 @@ Calendar.defaultProps = {
   maxDate: addYears(new Date(), 20),
   minDate: addYears(new Date(), -100),
   rangeColors: ['#3d91ff', '#3ecf8e', '#fed14c'],
+  updateShownDateOnChange: true,
+  updateShownDateToFocusedRange: false,
 };
 
 Calendar.propTypes = {
@@ -507,6 +507,8 @@ Calendar.propTypes = {
   direction: PropTypes.oneOf(['vertical', 'horizontal']),
   navigatorRenderer: PropTypes.func,
   rangeColors: PropTypes.arrayOf(PropTypes.string),
+  updateShownDateOnChange: PropTypes.bool,
+  updateShownDateToFocusedRange: PropTypes.bool,
 };
 
 export default Calendar;

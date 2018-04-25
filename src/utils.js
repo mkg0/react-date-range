@@ -1,4 +1,5 @@
 import classnames from 'classnames';
+import defaultLocale from 'date-fns/locale/en-US';
 import {
   addMonths,
   areIntervalsOverlapping,
@@ -10,9 +11,17 @@ import {
 
 export function calcFocusDate(currentFocusedDate, props) {
   const { shownDate, date, months, ranges, focusedRange, displayMode } = props;
-  // find primary date according the props
+  const dateOptions = getDateOptions(props);
+
+  const getFocusedDateOfRange = (range, focusedRange) => {
+    const focusedStep = focusedRange[1];
+    if (focusedStep === 1) return range.end;
+    return range.start;
+  };
+
   let targetInterval;
-  if (displayMode === 'dateRange') {
+  const isRangeMode = displayMode === 'dateRange';
+  if (isRangeMode) {
     const range = ranges[focusedRange[0]] || {};
     targetInterval = {
       start: range.startDate,
@@ -24,18 +33,25 @@ export function calcFocusDate(currentFocusedDate, props) {
       end: date,
     };
   }
-  targetInterval.start = startOfMonth(targetInterval.start || new Date());
-  targetInterval.end = endOfMonth(targetInterval.end || targetInterval.start);
-  const targetDate = targetInterval.start || targetInterval.end || shownDate || new Date();
 
+  // move interval to edges
+  targetInterval.start = startOfMonth(targetInterval.start || new Date(), dateOptions);
+  targetInterval.end = endOfMonth(targetInterval.end || targetInterval.start, dateOptions);
+
+  let targetDate = isRangeMode
+    ? getFocusedDateOfRange(targetInterval, focusedRange)
+    : targetInterval.start;
+  if (!targetDate) {
+    targetDate = targetInterval.start || targetInterval.end || shownDate || new Date();
+  }
   // initial focus
   if (!currentFocusedDate) return shownDate || targetDate;
 
   // // just return targetDate for native scrolled calendars
   // if (props.scroll.enabled) return targetDate;
   const currentFocusInterval = {
-    start: startOfMonth(currentFocusedDate),
-    end: endOfMonth(addMonths(currentFocusedDate, months - 1)),
+    start: startOfMonth(currentFocusedDate, dateOptions),
+    end: endOfMonth(addMonths(currentFocusedDate, months - 1), dateOptions),
   };
   if (areIntervalsOverlapping(targetInterval, currentFocusInterval)) {
     // don't change focused if new selection in view area
@@ -71,9 +87,16 @@ export function generateStyles(sources) {
     .filter(source => Boolean(source))
     .reduce((styles, styleSource) => {
       Object.keys(styleSource).forEach(key => {
-        styles[key] = classnames(styles[key], styleSource[key]);
+        if (styleSource[key]) styles[key] = classnames(styles[key], styleSource[key]);
       });
       return styles;
     }, {});
   return generatedStyles;
+}
+
+export function getDateOptions(props) {
+  debugger;
+  return {
+    locale: props.locale || defaultLocale,
+  };
 }
